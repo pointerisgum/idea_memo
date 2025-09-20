@@ -1,0 +1,53 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+import 'core/router/app_router.dart';
+import 'presentation/views/alarm_view.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Timezone 초기화
+  tz.initializeTimeZones();
+  tz.setLocalLocation(tz.getLocation('Asia/Seoul'));
+
+  runApp(const ProviderScope(child: MyApp()));
+}
+
+// // 오버레이 진입점 - 별도 isolate에서 실행됨
+// @pragma("vm:entry-point")
+// void overlayMain() {
+//   runApp(const MaterialApp(
+//     home: OverlayView(),
+//     debugShowCheckedModeBanner: false,
+//   ));
+// }
+
+// 알람 진입점 - AlarmActivity에서 사용
+@pragma("vm:entry-point")
+void alarmMain() {
+  runApp(const MaterialApp(
+    home: AlarmView(),
+    debugShowCheckedModeBanner: false,
+  ));
+}
+
+class MyApp extends ConsumerWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+
+    return MaterialApp.router(
+      title: '아이디어 메모',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
+      routerConfig: router,
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
