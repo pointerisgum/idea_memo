@@ -43,6 +43,17 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Android Gradle 관련
+android/.gradle/
+android/local.properties
+android/gradle/wrapper/gradle-wrapper.jar
+
+# iOS 자동 생성 파일들
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Runner/GeneratedPluginRegistrant.h
+ios/Runner/GeneratedPluginRegistrant.m
+
 # 🔐 보안 파일들 (절대 Git에 올리면 안됨!)
 android/key.properties
 android/app/*.jks
