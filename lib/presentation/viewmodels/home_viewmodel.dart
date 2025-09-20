@@ -11,7 +11,6 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../views/alarm_view.dart';
 
 part 'home_viewmodel.g.dart';
 part 'home_viewmodel.freezed.dart';
@@ -35,7 +34,7 @@ class HomeViewModel extends _$HomeViewModel {
         return stringList.map((str) => int.parse(str)).toSet();
       }
     } catch (e) {
-      print('처리된 알람 ID 로드 실패: $e');
+      debugPrint('처리된 알람 ID 로드 실패: $e');
     }
     return <int>{};
   }
@@ -46,7 +45,7 @@ class HomeViewModel extends _$HomeViewModel {
       final List<String> stringList = alarmIds.map((id) => id.toString()).toList();
       await prefs.setStringList(_processedAlarmsKey, stringList);
     } catch (e) {
-      print('처리된 알람 ID 저장 실패: $e');
+      debugPrint('처리된 알람 ID 저장 실패: $e');
     }
   }
 
@@ -71,17 +70,27 @@ class HomeViewModel extends _$HomeViewModel {
   @override
   HomeViewState build() {
     final initialState = const HomeViewState(
-      isLoading: false,
-      message: '✅ 자동 잠금 화면 감지가 활성화되었습니다!\n\n앱을 종료하고 화면을 껐다 켜보세요.',
-      isServiceRunning: true,
+      isLoading: true, // 권한 체크 중
+      isServiceRunning: false,
       isLockScreenMode: false,
+      needsPermissionSetup: false, // 초기값은 false
     );
 
     Future.microtask(() async {
-      await _initializeNotifications();
-      await _autoStartService();
-      await _checkLockScreenMode();
-      _setupMethodChannelListener();
+      try {
+        await _initializeNotifications();
+        await _checkLockScreenMode();
+        _setupMethodChannelListener();
+
+        // 최우선으로 오버레이 권한 체크
+        await _checkOverlayPermissionAndSetState();
+
+        debugPrint('✅ 초기화 완료');
+      } catch (e, stackTrace) {
+        debugPrint('❌ 초기화 중 오류: $e');
+        debugPrint('❌ Stack trace: $stackTrace');
+        _setLoading(false);
+      }
     });
 
     return initialState;
@@ -92,54 +101,27 @@ class HomeViewModel extends _$HomeViewModel {
       const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
       const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
       final bool? initialized = await _notificationsPlugin.initialize(initializationSettings);
-      print('📱 Notification 초기화 결과: $initialized');
+      debugPrint('📱 Notification 초기화 결과: $initialized');
     } catch (e) {
-      print('Notification 초기화 실패: $e');
+      debugPrint('Notification 초기화 실패: $e');
     }
   }
 
-  // 앱 시작 시 자동으로 서비스 시작
+  // 백그라운드 서비스 시작 (권한 허용 후에만 호출)
   Future<void> _autoStartService() async {
-    if (!Platform.isAndroid) {
-      _setMessage('iOS는 지원되지 않습니다.');
-      return;
-    }
+    if (!Platform.isAndroid) return;
 
     try {
       _setLoading(true);
-
-      // 네이티브 코드에서 자동으로 권한 확인 및 서비스 시작
       await _autoLockScreenChannel.invokeMethod('checkAndStartService');
-
-      _setMessage('✅ 백그라운드 서비스가 자동으로 시작되었습니다!\n\n이제 앱을 완전히 종료하고 화면을 껐다 켜보세요.\n화면이 켜지는 순간 이 앱이 나타납니다!');
       _setServiceRunning(true);
+      debugPrint('✅ 백그라운드 서비스 시작됨');
     } catch (e) {
-      _setMessage('❌ 서비스 시작 중 오류: $e\n\n"다른 앱 위에 표시" 권한을 허용해주세요.');
+      debugPrint('❌ 서비스 시작 실패: $e');
       _setServiceRunning(false);
     }
 
     _setLoading(false);
-  }
-
-  // 서비스 상태 확인
-  Future<void> checkServiceStatus() async {
-    if (!Platform.isAndroid) return;
-
-    try {
-      bool isRunning = await _autoLockScreenChannel.invokeMethod('isServiceRunning');
-      _setServiceRunning(isRunning);
-
-      if (isRunning) {
-        _setMessage('✅ 백그라운드 서비스가 실행 중입니다!\n\n화면을 껐다 켜보세요.');
-      } else {
-        _setMessage('❌ 서비스가 실행되지 않았습니다.\n권한을 확인해주세요.');
-        // 서비스가 실행되지 않으면 다시 시작 시도
-        await _autoStartService();
-      }
-    } catch (e) {
-      _setMessage('서비스 상태 확인 중 오류: $e');
-      _setServiceRunning(false);
-    }
   }
 
   // 로딩 상태 업데이트
@@ -147,50 +129,84 @@ class HomeViewModel extends _$HomeViewModel {
     state = state.copyWith(isLoading: loading);
   }
 
-  // 메시지 업데이트
+  // 최우선 권한 체크 및 상태 설정
+  Future<void> _checkOverlayPermissionAndSetState() async {
+    if (!Platform.isAndroid) {
+      // iOS는 권한 불필요
+      state = state.copyWith(
+        isLoading: false,
+        needsPermissionSetup: false,
+      );
+      return;
+    }
+
+    try {
+      // 네이티브에서 오버레이 권한 상태 확인
+      final hasPermission = await _autoLockScreenChannel.invokeMethod('checkOverlayPermission');
+      debugPrint('🔍 오버레이 권한 상태: $hasPermission');
+
+      if (hasPermission == true) {
+        // 권한 있음 - 바로 서비스 시작, 팝업 없음
+        debugPrint('✅ 권한 있음 - 서비스 시작');
+        state = state.copyWith(
+          isLoading: false,
+          needsPermissionSetup: false,
+        );
+        await _autoStartService();
+      } else {
+        // 권한 없음 - 권한 요청 팝업 필요
+        debugPrint('⚠️ 권한 없음 - 팝업 표시 필요');
+        state = state.copyWith(
+          isLoading: false,
+          needsPermissionSetup: true,
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ 권한 체크 실패: $e');
+      // 오류 시 권한 요청으로 처리
+      state = state.copyWith(
+        isLoading: false,
+        needsPermissionSetup: true,
+      );
+    }
+  }
+
+  // 권한 요청 메서드
+  Future<void> requestOverlayPermission() async {
+    if (!Platform.isAndroid) return;
+
+    try {
+      debugPrint('🔄 오버레이 권한 요청 시작');
+      // 직접 권한 요청 메서드 호출 (checkAndStartService가 아님!)
+      await _autoLockScreenChannel.invokeMethod('requestOverlayPermission');
+      debugPrint('✅ 권한 요청 완료');
+    } catch (e) {
+      debugPrint('❌ 권한 요청 실패: $e');
+    }
+  }
+
+  // 외부에서 권한 체크할 수 있는 공개 메서드
+  Future<bool> checkOverlayPermission() async {
+    if (!Platform.isAndroid) return true;
+
+    try {
+      final hasPermission = await _autoLockScreenChannel.invokeMethod('checkOverlayPermission');
+      return hasPermission == true;
+    } catch (e) {
+      debugPrint('❌ 권한 체크 실패: $e');
+      return false;
+    }
+  }
+
+  // 메시지 업데이트 (더 이상 사용하지 않음)
   void _setMessage(String message) {
-    state = state.copyWith(message: message);
+    // message 필드가 제거되어 아무것도 하지 않음
+    debugPrint('메시지: $message');
   }
 
   // 서비스 실행 상태 업데이트
   void _setServiceRunning(bool isRunning) {
     state = state.copyWith(isServiceRunning: isRunning);
-  }
-
-  // 수동 권한 요청 (필요시)
-  Future<void> requestPermissions() async {
-    _setLoading(true);
-    _setMessage('권한을 요청하고 있습니다...');
-
-    try {
-      // 알림 권한 요청
-      PermissionStatus notificationStatus = await Permission.notification.request();
-      if (notificationStatus != PermissionStatus.granted) {
-        _setMessage('❌ 알림 권한이 필요합니다.');
-        _setLoading(false);
-        return;
-      }
-
-      // Android 12+ 정확한 알람 권한 요청
-      if (Platform.isAndroid) {
-        final exactAlarmPermission = await Permission.scheduleExactAlarm.status;
-        if (exactAlarmPermission != PermissionStatus.granted) {
-          final result = await Permission.scheduleExactAlarm.request();
-          if (result != PermissionStatus.granted) {
-            _setMessage('❌ 정확한 알람 권한이 필요합니다.');
-            _setLoading(false);
-            return;
-          }
-        }
-      }
-
-      _setMessage('✅ 모든 권한이 허용되었습니다! 서비스를 다시 시작합니다.');
-      await _autoStartService();
-    } catch (e) {
-      _setMessage('권한 요청 중 오류가 발생했습니다: $e');
-    }
-
-    _setLoading(false);
   }
 
   // 다중 알람 등록 (지정된 초 후)
@@ -264,7 +280,7 @@ class HomeViewModel extends _$HomeViewModel {
       try {
         scheduledTime = tz.TZDateTime.now(tz.local).add(Duration(seconds: delaySeconds));
       } catch (e) {
-        print('❌ Timezone 오류, UTC 사용: $e');
+        debugPrint('❌ Timezone 오류, UTC 사용: $e');
         // timezone 실패 시 UTC 사용
         final utcTime = DateTime.now().toUtc().add(Duration(seconds: delaySeconds));
         scheduledTime = tz.TZDateTime.from(utcTime, tz.UTC);
@@ -277,10 +293,7 @@ class HomeViewModel extends _$HomeViewModel {
       final String title = 'TODO 알람 #$alarmId';
       final String message = '$timeText 후 알람입니다!';
 
-      // 릴리즈 모드 대응: 두 가지 방법으로 시도
-      bool notificationScheduled = false;
-
-      // 방법 1: zonedSchedule 시도
+      // 릴리즈 모드 대응: zonedSchedule 시도
       try {
         await _notificationsPlugin.zonedSchedule(
           alarmId,
@@ -292,20 +305,11 @@ class HomeViewModel extends _$HomeViewModel {
           uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
           payload: 'alarm_payload_$alarmId',
         );
-        notificationScheduled = true;
-        print('✅ zonedSchedule 성공');
+        debugPrint('✅ zonedSchedule 성공');
       } catch (e) {
-        print('❌ zonedSchedule 실패: $e');
-
-        // 방법 2: show 즉시 알림 + Timer 대체 사용
-        try {
-          // 즉시 알림 표시는 하지 않고, Timer만 사용
-          print('🔄 zonedSchedule 실패로 Timer만 사용');
-          notificationScheduled = true; // Timer는 이미 아래에서 설정됨
-        } catch (e2) {
-          print('❌ 대체 방법도 실패: $e2');
-          throw Exception('알림 등록 실패: $e');
-        }
+        debugPrint('❌ zonedSchedule 실패: $e');
+        debugPrint('🔄 WorkManager를 통한 알람만 사용');
+        // WorkManager를 통한 알람은 아래에서 설정되므로 계속 진행
       }
 
       // 알람 목록에 추가
@@ -329,12 +333,12 @@ class HomeViewModel extends _$HomeViewModel {
         'message': message,
       });
 
-      print('✅ WorkManager 알람 스케줄링 요청 완료');
+      debugPrint('✅ WorkManager 알람 스케줄링 요청 완료');
     } catch (e) {
-      print('❌ 알람 등록 오류 상세: $e');
-      print('❌ 오류 타입: ${e.runtimeType}');
+      debugPrint('❌ 알람 등록 오류 상세: $e');
+      debugPrint('❌ 오류 타입: ${e.runtimeType}');
       if (e is PlatformException) {
-        print('❌ PlatformException - code: ${e.code}, message: ${e.message}');
+        debugPrint('❌ PlatformException - code: ${e.code}, message: ${e.message}');
       }
       _setMessage('알람 등록 중 오류가 발생했습니다: $e\n\n오류 타입: ${e.runtimeType}');
     }
@@ -342,14 +346,9 @@ class HomeViewModel extends _$HomeViewModel {
     _setLoading(false);
   }
 
-  // Flutter 알람 화면 표시 (Navigation 기반)
-  void _showFlutterAlarmScreen() {
-    _showNavigationAlarm();
-  }
-
   // Navigation 기반 전체 화면 알람 표시
   void _showNavigationAlarm() {
-    print('🚨 _showNavigationAlarm 호출됨!');
+    debugPrint('🚨 _showNavigationAlarm 호출됨!');
     try {
       // Android: 네이티브 채널로 화면 깨우기 + 사운드 재생 요청
       if (Platform.isAndroid) {
@@ -357,15 +356,15 @@ class HomeViewModel extends _$HomeViewModel {
           'title': 'TODO 알람 123 ',
           'message': '등록된 할 일 시간입니다! 123',
         });
-        print('🔔 Android 네이티브 알람 요청 전송 완료');
+        debugPrint('🔔 Android 네이티브 알람 요청 전송 완료');
       }
 
       // iOS는 기본 알림만 사용 (Navigation 안함)
       if (Platform.isIOS) {
-        print('🍎 iOS는 기본 알림으로 처리됨');
+        debugPrint('🍎 iOS는 기본 알림으로 처리됨');
       }
     } catch (e) {
-      print('❌ 알람 표시 실패: $e');
+      debugPrint('❌ 알람 표시 실패: $e');
       _setMessage('🔔 알람이 울렸습니다! (오류: $e)');
     }
   }
@@ -418,12 +417,6 @@ class HomeViewModel extends _$HomeViewModel {
     } catch (e) {
       _setMessage('잠금화면 모드 종료 중 오류: $e');
     }
-  }
-
-  // 팝업 테스트 - 다이얼로그로 변경
-  void showTestPopup() {
-    // 메시지는 간단하게만 업데이트
-    _setMessage('팝업 테스트 버튼이 클릭되었습니다.');
   }
 
   // 기존 호환성을 위한 1분 알람 메서드
@@ -494,7 +487,7 @@ class HomeViewModel extends _$HomeViewModel {
             'alarmId': alarm.id,
           });
         } catch (e) {
-          print('WorkManager 알람 ${alarm.id} 취소 실패: $e');
+          debugPrint('WorkManager 알람 ${alarm.id} 취소 실패: $e');
         }
       }
 
@@ -512,7 +505,7 @@ class HomeViewModel extends _$HomeViewModel {
     _autoLockScreenChannel.setMethodCallHandler((call) async {
       if (call.method == 'onLockScreenModeChanged') {
         bool newMode = call.arguments as bool;
-        print('🔄 Mode changed from native: $newMode');
+        debugPrint('🔄 Mode changed from native: $newMode');
         _setLockScreenMode(newMode);
 
         if (newMode) {
@@ -565,10 +558,10 @@ class HomeViewModel extends _$HomeViewModel {
 class HomeViewState with _$HomeViewState {
   const factory HomeViewState({
     required bool isLoading,
-    required String message,
     @Default(false) bool isServiceRunning,
     @Default(false) bool isLockScreenMode,
     @Default([]) List<AlarmInfo> scheduledAlarms,
+    @Default(false) bool needsPermissionSetup,
   }) = _HomeViewState;
 }
 

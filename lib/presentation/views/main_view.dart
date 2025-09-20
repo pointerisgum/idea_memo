@@ -18,9 +18,11 @@ class MainView extends ConsumerStatefulWidget {
   ConsumerState<MainView> createState() => _MainViewState();
 }
 
-class _MainViewState extends ConsumerState<MainView> {
+class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver {
   Timer? _timer;
   DateTime _currentTime = DateTime.now();
+  bool _hasShownPermissionSheet = false;
+  bool _isPermissionSheetShowing = false; // 현재 바텀시트가 표시 중인지 추적
 
   @override
   void initState() {
@@ -31,12 +33,64 @@ class _MainViewState extends ConsumerState<MainView> {
         _currentTime = DateTime.now();
       });
     });
+
+    // 앱 생명주기 관찰자 등록
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('🔄 앱이 포그라운드로 복귀 - 권한 상태 체크');
+      // 앱이 포그라운드로 돌아올 때 권한 상태 체크
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _checkPermissionOnResume();
+      });
+    }
+  }
+
+  // 포그라운드 복귀 시 권한 체크
+  void _checkPermissionOnResume() async {
+    try {
+      final hasPermission = await ref.read(homeViewModelProvider.notifier).checkOverlayPermission();
+
+      debugPrint('🔍 포그라운드 복귀 시 권한 상태: $hasPermission');
+
+      if (hasPermission) {
+        // 권한이 있는데 바텀시트가 떠있으면 닫기
+        if (_isPermissionSheetShowing) {
+          debugPrint('✅ 권한 허용됨 - 바텀시트 닫기');
+          Navigator.of(context).pop(); // 바텀시트 강제로 닫기
+          _isPermissionSheetShowing = false;
+          _hasShownPermissionSheet = false;
+        }
+      } else {
+        // 잠금화면 상태 확인 - 잠금화면에서는 바텀시트 표시 안함
+        final homeState = ref.read(homeViewModelProvider);
+        if (homeState.isLockScreenMode) {
+          debugPrint('🔒 잠금화면 상태 - 바텀시트 표시 안함');
+          return;
+        }
+
+        // 권한이 없고 바텀시트가 표시되지 않았으면 표시
+        if (!_isPermissionSheetShowing) {
+          debugPrint('⚠️ 권한 없음 - 바텀시트 표시');
+          _hasShownPermissionSheet = false; // 플래그 리셋해서 다시 표시 가능하게
+          _showPermissionBottomSheet();
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ 포그라운드 복귀 시 권한 체크 실패: $e');
+    }
   }
 
   @override
@@ -46,6 +100,21 @@ class _MainViewState extends ConsumerState<MainView> {
     // HomeViewModel 상태를 올바르게 가져오기
     final homeState = ref.watch(homeViewModelProvider);
     final isLockScreen = homeState.isLockScreenMode;
+    final needsPermissionSetup = homeState.needsPermissionSetup;
+
+    // 권한이 필요하고 잠금화면이 아니고 바텀시트가 표시되지 않았을 때만 표시
+    if (needsPermissionSetup && !isLockScreen && !_hasShownPermissionSheet && !_isPermissionSheetShowing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showPermissionBottomSheet();
+        _hasShownPermissionSheet = true;
+      });
+    }
+
+    // 권한이 해결되면 플래그 리셋
+    if (!needsPermissionSetup && _hasShownPermissionSheet) {
+      _hasShownPermissionSheet = false;
+      _isPermissionSheetShowing = false;
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -66,6 +135,163 @@ class _MainViewState extends ConsumerState<MainView> {
         ),
       ),
     );
+  }
+
+  // 권한 요청 바텀시트 표시
+  void _showPermissionBottomSheet() {
+    // 이미 표시 중이면 중복 표시 방지
+    if (_isPermissionSheetShowing) {
+      debugPrint('🔍 바텀시트 이미 표시 중 - 중복 방지');
+      return;
+    }
+
+    _isPermissionSheetShowing = true; // 표시 중 플래그 설정
+
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false, // 바깥 터치로 닫기 방지
+      enableDrag: false, // 드래그로 닫기 방지
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false, // 백키로 닫기 방지
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 상단 텍스트
+                const Text(
+                  '편리한 이용을 위해\n아래의 접근권한 허용이 필요합니다',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                // const SizedBox(height: 8),
+                // const Text(
+                //   '아래의 접근권한 허용이 필요합니다',
+                //   style: TextStyle(
+                //     fontSize: 18,
+                //     fontWeight: FontWeight.w600,
+                //     color: AppColors.textPrimary,
+                //   ),
+                // ),
+                const SizedBox(height: 32),
+
+                // 권한 항목
+                Row(
+                  children: [
+                    // 아이콘
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppColors.grey100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        CupertinoIcons.layers_alt_fill,
+                        size: 24,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // 텍스트
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Text(
+                                '다른 앱 위에 표시',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                '(필수)',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.secondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            '앱 서비스 실행',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 32),
+
+                // 동의 버튼
+                Container(
+                  width: double.infinity,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      _isPermissionSheetShowing = false; // 플래그 해제
+                      Navigator.of(context).pop(); // 바텀시트 닫기
+                      ref.read(homeViewModelProvider.notifier).requestOverlayPermission();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: AppColors.textOnPrimary,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      '동의',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ).then((_) {
+      // 바텀시트가 닫힐 때 플래그 해제
+      _isPermissionSheetShowing = false;
+      debugPrint('🔍 바텀시트 닫힘 - 플래그 해제');
+    });
   }
 
   Widget _buildTopSection() {

@@ -97,9 +97,8 @@ class MainActivity : FlutterActivity() {
         
         if (isAlarmMode) {
             handleAlarmIntentImmediate(intent)
-        } else if (!isLockScreenMode) {
-            checkPermissionsAndStartService()
         }
+        // 자동 권한 체크 제거 - Flutter에서 사용자 동의 후에만 권한 요청
     }
 
     private var currentLockScreenMode = false
@@ -141,6 +140,12 @@ class MainActivity : FlutterActivity() {
                         requestBatteryOptimizationExemption()
                         result.success("Battery optimization exemption requested")
                     }
+                    "requestOverlayPermission" -> {
+                        // 사용자가 동의 버튼을 눌렀을 때만 권한 요청
+                        Log.d(TAG, "사용자가 동의함 - 오버레이 권한 요청")
+                        requestOverlayPermission()
+                        result.success("Overlay permission requested")
+                    }
                     "scheduleWorkManagerAlarm" -> {
                         // WorkManager로 알람 스케줄링
                         val alarmId = call.argument<Int>("alarmId") ?: -1
@@ -156,6 +161,12 @@ class MainActivity : FlutterActivity() {
                         val alarmId = call.argument<Int>("alarmId") ?: -1
                         cancelWorkManagerAlarm(alarmId)
                         result.success("WorkManager alarm cancelled")
+                    }
+                    "checkOverlayPermission" -> {
+                        // 오버레이 권한 상태 확인
+                        val hasPermission = Settings.canDrawOverlays(this)
+                        Log.d(TAG, "🔍 오버레이 권한 상태: $hasPermission")
+                        result.success(hasPermission)
                     }
                     else -> result.notImplemented()
                 }
@@ -253,10 +264,7 @@ class MainActivity : FlutterActivity() {
         
         updateLockScreenMode()
         
-        // 일반 모드일 때만 서비스 상태 확인
-        if (!currentLockScreenMode) {
-            checkPermissionsAndStartService()
-        }
+        // 자동 권한 체크 제거 - Flutter에서 관리
     }
     
     // 실제 잠금화면 상태 확인

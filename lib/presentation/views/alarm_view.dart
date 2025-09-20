@@ -111,9 +111,9 @@ class _AlarmViewState extends State<AlarmView> with TickerProviderStateMixin {
         }
       });
 
-      print('🔊 시스템 알람 사운드 재생 시작');
+      debugPrint('🔊 시스템 알람 사운드 재생 시작');
     } catch (e) {
-      print('알람 사운드 재생 실패: $e');
+      debugPrint('알람 사운드 재생 실패: $e');
     }
   }
 
@@ -140,7 +140,7 @@ class _AlarmViewState extends State<AlarmView> with TickerProviderStateMixin {
         }
       });
     } catch (e) {
-      print('진동 실행 실패: $e');
+      debugPrint('진동 실행 실패: $e');
     }
   }
 
@@ -156,7 +156,7 @@ class _AlarmViewState extends State<AlarmView> with TickerProviderStateMixin {
       try {
         await MethodChannel('auto_lockscreen_channel').invokeMethod('stopAlarmSound');
       } catch (e) {
-        print('네이티브 사운드 정지 실패: $e');
+        debugPrint('네이티브 사운드 정지 실패: $e');
       }
     }
 
@@ -177,7 +177,7 @@ class _AlarmViewState extends State<AlarmView> with TickerProviderStateMixin {
       try {
         await MethodChannel('auto_lockscreen_channel').invokeMethod('stopAlarmSound');
       } catch (e) {
-        print('네이티브 사운드 정지 실패: $e');
+        debugPrint('네이티브 사운드 정지 실패: $e');
       }
     }
 

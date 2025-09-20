@@ -17,10 +17,10 @@ final _privateConstructorUsedError = UnsupportedError(
 /// @nodoc
 mixin _$HomeViewState {
   bool get isLoading => throw _privateConstructorUsedError;
-  String get message => throw _privateConstructorUsedError;
   bool get isServiceRunning => throw _privateConstructorUsedError;
   bool get isLockScreenMode => throw _privateConstructorUsedError;
   List<AlarmInfo> get scheduledAlarms => throw _privateConstructorUsedError;
+  bool get needsPermissionSetup => throw _privateConstructorUsedError;
 
   /// Create a copy of HomeViewState
   /// with the given fields replaced by the non-null parameter values.
@@ -37,10 +37,10 @@ abstract class $HomeViewStateCopyWith<$Res> {
   @useResult
   $Res call(
       {bool isLoading,
-      String message,
       bool isServiceRunning,
       bool isLockScreenMode,
-      List<AlarmInfo> scheduledAlarms});
+      List<AlarmInfo> scheduledAlarms,
+      bool needsPermissionSetup});
 }
 
 /// @nodoc
@@ -59,20 +59,16 @@ class _$HomeViewStateCopyWithImpl<$Res, $Val extends HomeViewState>
   @override
   $Res call({
     Object? isLoading = null,
-    Object? message = null,
     Object? isServiceRunning = null,
     Object? isLockScreenMode = null,
     Object? scheduledAlarms = null,
+    Object? needsPermissionSetup = null,
   }) {
     return _then(_value.copyWith(
       isLoading: null == isLoading
           ? _value.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
               as bool,
-      message: null == message
-          ? _value.message
-          : message // ignore: cast_nullable_to_non_nullable
-              as String,
       isServiceRunning: null == isServiceRunning
           ? _value.isServiceRunning
           : isServiceRunning // ignore: cast_nullable_to_non_nullable
@@ -85,6 +81,10 @@ class _$HomeViewStateCopyWithImpl<$Res, $Val extends HomeViewState>
           ? _value.scheduledAlarms
           : scheduledAlarms // ignore: cast_nullable_to_non_nullable
               as List<AlarmInfo>,
+      needsPermissionSetup: null == needsPermissionSetup
+          ? _value.needsPermissionSetup
+          : needsPermissionSetup // ignore: cast_nullable_to_non_nullable
+              as bool,
     ) as $Val);
   }
 }
@@ -99,10 +99,10 @@ abstract class _$$HomeViewStateImplCopyWith<$Res>
   @useResult
   $Res call(
       {bool isLoading,
-      String message,
       bool isServiceRunning,
       bool isLockScreenMode,
-      List<AlarmInfo> scheduledAlarms});
+      List<AlarmInfo> scheduledAlarms,
+      bool needsPermissionSetup});
 }
 
 /// @nodoc
@@ -119,20 +119,16 @@ class __$$HomeViewStateImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? isLoading = null,
-    Object? message = null,
     Object? isServiceRunning = null,
     Object? isLockScreenMode = null,
     Object? scheduledAlarms = null,
+    Object? needsPermissionSetup = null,
   }) {
     return _then(_$HomeViewStateImpl(
       isLoading: null == isLoading
           ? _value.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
               as bool,
-      message: null == message
-          ? _value.message
-          : message // ignore: cast_nullable_to_non_nullable
-              as String,
       isServiceRunning: null == isServiceRunning
           ? _value.isServiceRunning
           : isServiceRunning // ignore: cast_nullable_to_non_nullable
@@ -145,6 +141,10 @@ class __$$HomeViewStateImplCopyWithImpl<$Res>
           ? _value._scheduledAlarms
           : scheduledAlarms // ignore: cast_nullable_to_non_nullable
               as List<AlarmInfo>,
+      needsPermissionSetup: null == needsPermissionSetup
+          ? _value.needsPermissionSetup
+          : needsPermissionSetup // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -156,16 +156,14 @@ class _$HomeViewStateImpl
     implements _HomeViewState {
   const _$HomeViewStateImpl(
       {required this.isLoading,
-      required this.message,
       this.isServiceRunning = false,
       this.isLockScreenMode = false,
-      final List<AlarmInfo> scheduledAlarms = const []})
+      final List<AlarmInfo> scheduledAlarms = const [],
+      this.needsPermissionSetup = false})
       : _scheduledAlarms = scheduledAlarms;
 
   @override
   final bool isLoading;
-  @override
-  final String message;
   @override
   @JsonKey()
   final bool isServiceRunning;
@@ -182,8 +180,12 @@ class _$HomeViewStateImpl
   }
 
   @override
+  @JsonKey()
+  final bool needsPermissionSetup;
+
+  @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'HomeViewState(isLoading: $isLoading, message: $message, isServiceRunning: $isServiceRunning, isLockScreenMode: $isLockScreenMode, scheduledAlarms: $scheduledAlarms)';
+    return 'HomeViewState(isLoading: $isLoading, isServiceRunning: $isServiceRunning, isLockScreenMode: $isLockScreenMode, scheduledAlarms: $scheduledAlarms, needsPermissionSetup: $needsPermissionSetup)';
   }
 
   @override
@@ -192,10 +194,10 @@ class _$HomeViewStateImpl
     properties
       ..add(DiagnosticsProperty('type', 'HomeViewState'))
       ..add(DiagnosticsProperty('isLoading', isLoading))
-      ..add(DiagnosticsProperty('message', message))
       ..add(DiagnosticsProperty('isServiceRunning', isServiceRunning))
       ..add(DiagnosticsProperty('isLockScreenMode', isLockScreenMode))
-      ..add(DiagnosticsProperty('scheduledAlarms', scheduledAlarms));
+      ..add(DiagnosticsProperty('scheduledAlarms', scheduledAlarms))
+      ..add(DiagnosticsProperty('needsPermissionSetup', needsPermissionSetup));
   }
 
   @override
@@ -205,23 +207,24 @@ class _$HomeViewStateImpl
             other is _$HomeViewStateImpl &&
             (identical(other.isLoading, isLoading) ||
                 other.isLoading == isLoading) &&
-            (identical(other.message, message) || other.message == message) &&
             (identical(other.isServiceRunning, isServiceRunning) ||
                 other.isServiceRunning == isServiceRunning) &&
             (identical(other.isLockScreenMode, isLockScreenMode) ||
                 other.isLockScreenMode == isLockScreenMode) &&
             const DeepCollectionEquality()
-                .equals(other._scheduledAlarms, _scheduledAlarms));
+                .equals(other._scheduledAlarms, _scheduledAlarms) &&
+            (identical(other.needsPermissionSetup, needsPermissionSetup) ||
+                other.needsPermissionSetup == needsPermissionSetup));
   }
 
   @override
   int get hashCode => Object.hash(
       runtimeType,
       isLoading,
-      message,
       isServiceRunning,
       isLockScreenMode,
-      const DeepCollectionEquality().hash(_scheduledAlarms));
+      const DeepCollectionEquality().hash(_scheduledAlarms),
+      needsPermissionSetup);
 
   /// Create a copy of HomeViewState
   /// with the given fields replaced by the non-null parameter values.
@@ -235,21 +238,21 @@ class _$HomeViewStateImpl
 abstract class _HomeViewState implements HomeViewState {
   const factory _HomeViewState(
       {required final bool isLoading,
-      required final String message,
       final bool isServiceRunning,
       final bool isLockScreenMode,
-      final List<AlarmInfo> scheduledAlarms}) = _$HomeViewStateImpl;
+      final List<AlarmInfo> scheduledAlarms,
+      final bool needsPermissionSetup}) = _$HomeViewStateImpl;
 
   @override
   bool get isLoading;
-  @override
-  String get message;
   @override
   bool get isServiceRunning;
   @override
   bool get isLockScreenMode;
   @override
   List<AlarmInfo> get scheduledAlarms;
+  @override
+  bool get needsPermissionSetup;
 
   /// Create a copy of HomeViewState
   /// with the given fields replaced by the non-null parameter values.
