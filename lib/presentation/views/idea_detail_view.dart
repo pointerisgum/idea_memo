@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:ideamemo/core/constants/app_colors.dart';
 import 'package:ideamemo/core/utils/font_size_manager.dart';
 import 'package:ideamemo/core/services/firestore_service.dart';
@@ -83,17 +84,20 @@ class _IdeaDetailViewState extends ConsumerState<IdeaDetailView> {
           ),
         ),
         actions: [
-          IconButton(
-            icon: Icon(
-              CupertinoIcons.pencil,
-              color: AppColors.primary,
-              size: 24,
-            ),
+          TextButton(
             onPressed: () async {
               await context.push('/idea-edit/${widget.ideaId}');
               // 수정 페이지에서 돌아온 후 데이터 새로고침
               _loadIdea();
             },
+            child: Text(
+              '수정',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontSize: AppFontSizes.buttonTextSize,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -198,13 +202,36 @@ class _IdeaDetailViewState extends ConsumerState<IdeaDetailView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '제목',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: AppFontSizes.captionTextSize,
-                    fontWeight: FontWeight.w500,
-                  ),
+                // 제목 라벨과 생성일을 같은 줄에 표시
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      '제목',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: AppFontSizes.captionTextSize,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    // 메인 화면과 동일한 날짜 스타일 (고정 여부 무관하게 동일)
+                    // Container(
+                    //   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    //   decoration: BoxDecoration(
+                    //     color: AppColors.grey100,
+                    //     borderRadius: BorderRadius.circular(8),
+                    //   ),
+                    //   child: Text(
+                    //     DateFormat('yy.MM.dd HH:mm').format(_idea!.createdAt),
+                    //     style: TextStyle(
+                    //       fontSize: AppFontSizes.ideaDateSize,
+                    //       color: AppColors.textHint,
+                    //       fontWeight: FontWeight.w500,
+                    //     ),
+                    //   ),
+                    // ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(

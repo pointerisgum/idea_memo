@@ -166,6 +166,10 @@ class FirestoreService {
         content: data['content'] as String,
         createdAt: (data['createdAt'] as Timestamp).toDate(),
         updatedAt: data['updatedAt'] != null ? (data['updatedAt'] as Timestamp).toDate() : null,
+        isPinned: data['isPinned'] as bool? ?? false,
+        pinnedAt: data['pinnedAt'] != null ? (data['pinnedAt'] as Timestamp).toDate() : null,
+        isBookmarked: data['isBookmarked'] as bool? ?? false,
+        bookmarkedAt: data['bookmarkedAt'] != null ? (data['bookmarkedAt'] as Timestamp).toDate() : null,
       );
     } catch (e) {
       debugPrint('❌ [FIRESTORE] 아이디어 조회 실패: $e');

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,7 @@ import 'package:ideamemo/presentation/viewmodels/font_size_viewmodel.dart';
 import 'package:ideamemo/core/constants/app_colors.dart';
 import 'package:ideamemo/core/utils/font_size_manager.dart';
 import 'package:ideamemo/core/utils/dialog_utils.dart';
+import 'package:ideamemo/core/services/dev_data_service.dart';
 
 class SettingsView extends ConsumerWidget {
   const SettingsView({super.key});
@@ -55,6 +57,71 @@ class SettingsView extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
+
+              // 데이터 리셋 버튼 (디버그 모드에서만 표시)
+              if (kDebugMode) ...[
+                Container(
+                  width: double.infinity,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.lightShadow,
+                        offset: const Offset(0, 4),
+                        blurRadius: 12,
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => _resetIdeasData(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Colors.red,
+                                    Colors.orange
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                CupertinoIcons.refresh_bold,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                '아이디어 데이터 리셋 (DEV)',
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: AppFontSizes.settingsItemSize,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
 
               // 글씨 크기 설정 버튼
               Container(
@@ -287,5 +354,61 @@ class SettingsView extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// 아이디어 데이터 리셋 (디버그 모드 전용)
+  void _resetIdeasData(BuildContext context) async {
+    try {
+      // 확인 다이얼로그
+      final confirmed = await DialogUtils.showConfirmation(
+        context: context,
+        title: '데이터 리셋 (개발용)',
+        message: '모든 아이디어 데이터를 삭제하고\n새로운 샘플 데이터로 교체하시겠습니까?',
+        okLabel: '리셋',
+        cancelLabel: '취소',
+      );
+
+      if (!confirmed) return;
+
+      // 로딩 다이얼로그 표시
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      // DevDataService를 통한 데이터 리셋
+      await DevDataService.resetIdeasData();
+
+      // 로딩 다이얼로그 닫기
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // 성공 메시지
+      if (context.mounted) {
+        await DialogUtils.showInfo(
+          context: context,
+          title: '완료',
+          message: '아이디어 데이터가 성공적으로 리셋되었습니다!\n\n10개의 샘플 아이디어가 추가되었습니다.',
+        );
+      }
+    } catch (e) {
+      // 로딩 다이얼로그 닫기
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // 에러 메시지
+      if (context.mounted) {
+        await DialogUtils.showError(
+          context: context,
+          title: '오류',
+          message: '데이터 리셋 중 오류가 발생했습니다:\n$e',
+        );
+      }
+    }
   }
 }

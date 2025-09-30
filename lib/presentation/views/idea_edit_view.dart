@@ -111,6 +111,11 @@ class _IdeaEditViewState extends ConsumerState<IdeaEditView> {
         title: _titleController.text.trim(),
         content: _contentController.text.trim(),
         updatedAt: DateTime.now(),
+        // 기존 고정/북마크 상태 유지
+        isPinned: _originalIdea!.isPinned,
+        pinnedAt: _originalIdea!.pinnedAt,
+        isBookmarked: _originalIdea!.isBookmarked,
+        bookmarkedAt: _originalIdea!.bookmarkedAt,
       );
 
       await FirestoreService.updateIdea(updatedIdea);
