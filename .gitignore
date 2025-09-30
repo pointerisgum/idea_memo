@@ -73,6 +73,9 @@ secrets/
 *.pem
 *.p12
 
+# Firebase 설정 파일 (API 키 포함)
+lib/firebase_options.dart
+
 # 📁 참조용 프로젝트 폴더 (Git에 올리지 않음)
 base_on_board/
 
