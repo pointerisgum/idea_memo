@@ -7,7 +7,7 @@ part of 'idea_viewmodel.dart';
 // **************************************************************************
 
 String _$ideaViewModelNotifierHash() =>
-    r'abad1b632de145f7dec5ffa1d6d5683fb10cfb39';
+    r'278f162bf3688bf6a87d6346eeb54ab34a7418a8';
 
 /// See also [IdeaViewModelNotifier].
 @ProviderFor(IdeaViewModelNotifier)

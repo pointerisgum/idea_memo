@@ -5,9 +5,11 @@
 *.swp
 .DS_Store
 .atom/
+.build/
 .buildlog/
 .history
 .svn/
+.swiftpm/
 migrate_working_dir/
 
 # IntelliJ related
@@ -70,5 +72,8 @@ ios/firebase_app_id_file.json
 secrets/
 *.pem
 *.p12
+
+# 📁 참조용 프로젝트 폴더 (Git에 올리지 않음)
+base_on_board/
 
 docs/

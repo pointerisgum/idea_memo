@@ -25,6 +25,10 @@ mixin _$Idea {
   String get content => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime? get updatedAt => throw _privateConstructorUsedError;
+  bool get isPinned => throw _privateConstructorUsedError; // 고정 여부
+  DateTime? get pinnedAt => throw _privateConstructorUsedError; // 고정된 시간
+  bool get isBookmarked => throw _privateConstructorUsedError; // 북마크 여부
+  DateTime? get bookmarkedAt => throw _privateConstructorUsedError;
 
   /// Serializes this Idea to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -45,7 +49,11 @@ abstract class $IdeaCopyWith<$Res> {
       String title,
       String content,
       DateTime createdAt,
-      DateTime? updatedAt});
+      DateTime? updatedAt,
+      bool isPinned,
+      DateTime? pinnedAt,
+      bool isBookmarked,
+      DateTime? bookmarkedAt});
 }
 
 /// @nodoc
@@ -68,6 +76,10 @@ class _$IdeaCopyWithImpl<$Res, $Val extends Idea>
     Object? content = null,
     Object? createdAt = null,
     Object? updatedAt = freezed,
+    Object? isPinned = null,
+    Object? pinnedAt = freezed,
+    Object? isBookmarked = null,
+    Object? bookmarkedAt = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -90,6 +102,22 @@ class _$IdeaCopyWithImpl<$Res, $Val extends Idea>
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      isPinned: null == isPinned
+          ? _value.isPinned
+          : isPinned // ignore: cast_nullable_to_non_nullable
+              as bool,
+      pinnedAt: freezed == pinnedAt
+          ? _value.pinnedAt
+          : pinnedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      isBookmarked: null == isBookmarked
+          ? _value.isBookmarked
+          : isBookmarked // ignore: cast_nullable_to_non_nullable
+              as bool,
+      bookmarkedAt: freezed == bookmarkedAt
+          ? _value.bookmarkedAt
+          : bookmarkedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
     ) as $Val);
   }
 }
@@ -106,7 +134,11 @@ abstract class _$$IdeaImplCopyWith<$Res> implements $IdeaCopyWith<$Res> {
       String title,
       String content,
       DateTime createdAt,
-      DateTime? updatedAt});
+      DateTime? updatedAt,
+      bool isPinned,
+      DateTime? pinnedAt,
+      bool isBookmarked,
+      DateTime? bookmarkedAt});
 }
 
 /// @nodoc
@@ -126,6 +158,10 @@ class __$$IdeaImplCopyWithImpl<$Res>
     Object? content = null,
     Object? createdAt = null,
     Object? updatedAt = freezed,
+    Object? isPinned = null,
+    Object? pinnedAt = freezed,
+    Object? isBookmarked = null,
+    Object? bookmarkedAt = freezed,
   }) {
     return _then(_$IdeaImpl(
       id: null == id
@@ -148,6 +184,22 @@ class __$$IdeaImplCopyWithImpl<$Res>
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      isPinned: null == isPinned
+          ? _value.isPinned
+          : isPinned // ignore: cast_nullable_to_non_nullable
+              as bool,
+      pinnedAt: freezed == pinnedAt
+          ? _value.pinnedAt
+          : pinnedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      isBookmarked: null == isBookmarked
+          ? _value.isBookmarked
+          : isBookmarked // ignore: cast_nullable_to_non_nullable
+              as bool,
+      bookmarkedAt: freezed == bookmarkedAt
+          ? _value.bookmarkedAt
+          : bookmarkedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
     ));
   }
 }
@@ -160,7 +212,11 @@ class _$IdeaImpl implements _Idea {
       required this.title,
       required this.content,
       required this.createdAt,
-      this.updatedAt});
+      this.updatedAt,
+      this.isPinned = false,
+      this.pinnedAt,
+      this.isBookmarked = false,
+      this.bookmarkedAt});
 
   factory _$IdeaImpl.fromJson(Map<String, dynamic> json) =>
       _$$IdeaImplFromJson(json);
@@ -175,10 +231,23 @@ class _$IdeaImpl implements _Idea {
   final DateTime createdAt;
   @override
   final DateTime? updatedAt;
+  @override
+  @JsonKey()
+  final bool isPinned;
+// 고정 여부
+  @override
+  final DateTime? pinnedAt;
+// 고정된 시간
+  @override
+  @JsonKey()
+  final bool isBookmarked;
+// 북마크 여부
+  @override
+  final DateTime? bookmarkedAt;
 
   @override
   String toString() {
-    return 'Idea(id: $id, title: $title, content: $content, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'Idea(id: $id, title: $title, content: $content, createdAt: $createdAt, updatedAt: $updatedAt, isPinned: $isPinned, pinnedAt: $pinnedAt, isBookmarked: $isBookmarked, bookmarkedAt: $bookmarkedAt)';
   }
 
   @override
@@ -192,13 +261,21 @@ class _$IdeaImpl implements _Idea {
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
-                other.updatedAt == updatedAt));
+                other.updatedAt == updatedAt) &&
+            (identical(other.isPinned, isPinned) ||
+                other.isPinned == isPinned) &&
+            (identical(other.pinnedAt, pinnedAt) ||
+                other.pinnedAt == pinnedAt) &&
+            (identical(other.isBookmarked, isBookmarked) ||
+                other.isBookmarked == isBookmarked) &&
+            (identical(other.bookmarkedAt, bookmarkedAt) ||
+                other.bookmarkedAt == bookmarkedAt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, title, content, createdAt, updatedAt);
+  int get hashCode => Object.hash(runtimeType, id, title, content, createdAt,
+      updatedAt, isPinned, pinnedAt, isBookmarked, bookmarkedAt);
 
   /// Create a copy of Idea
   /// with the given fields replaced by the non-null parameter values.
@@ -222,7 +299,11 @@ abstract class _Idea implements Idea {
       required final String title,
       required final String content,
       required final DateTime createdAt,
-      final DateTime? updatedAt}) = _$IdeaImpl;
+      final DateTime? updatedAt,
+      final bool isPinned,
+      final DateTime? pinnedAt,
+      final bool isBookmarked,
+      final DateTime? bookmarkedAt}) = _$IdeaImpl;
 
   factory _Idea.fromJson(Map<String, dynamic> json) = _$IdeaImpl.fromJson;
 
@@ -236,6 +317,14 @@ abstract class _Idea implements Idea {
   DateTime get createdAt;
   @override
   DateTime? get updatedAt;
+  @override
+  bool get isPinned; // 고정 여부
+  @override
+  DateTime? get pinnedAt; // 고정된 시간
+  @override
+  bool get isBookmarked; // 북마크 여부
+  @override
+  DateTime? get bookmarkedAt;
 
   /// Create a copy of Idea
   /// with the given fields replaced by the non-null parameter values.

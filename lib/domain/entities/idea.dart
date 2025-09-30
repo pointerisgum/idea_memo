@@ -11,6 +11,10 @@ class Idea with _$Idea {
     required String content,
     required DateTime createdAt,
     DateTime? updatedAt,
+    @Default(false) bool isPinned, // 고정 여부
+    DateTime? pinnedAt, // 고정된 시간
+    @Default(false) bool isBookmarked, // 북마크 여부
+    DateTime? bookmarkedAt, // 북마크된 시간
   }) = _Idea;
 
   factory Idea.fromJson(Map<String, dynamic> json) => _$IdeaFromJson(json);

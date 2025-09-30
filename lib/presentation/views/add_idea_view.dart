@@ -3,9 +3,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../viewmodels/idea_viewmodel.dart';
-import '../../core/constants/app_colors.dart';
-import '../../core/utils/snackbar_utils.dart';
+import 'package:ideamemo/presentation/viewmodels/idea_viewmodel.dart';
+import 'package:ideamemo/presentation/viewmodels/font_size_viewmodel.dart';
+import 'package:ideamemo/core/constants/app_colors.dart';
+import 'package:ideamemo/core/utils/font_size_manager.dart';
+import 'package:ideamemo/core/utils/snackbar_utils.dart';
 
 class AddIdeaView extends ConsumerStatefulWidget {
   const AddIdeaView({super.key});
@@ -45,12 +47,12 @@ class _AddIdeaViewState extends ConsumerState<AddIdeaView> {
     final content = _contentController.text.trim();
 
     if (title.isEmpty) {
-      SnackBarUtils.showError(context, '제목을 입력해주세요.');
+      SnackbarUtils.showError(context, '제목을 입력해주세요.');
       return;
     }
 
     if (content.isEmpty) {
-      SnackBarUtils.showError(context, '내용을 입력해주세요.');
+      SnackbarUtils.showError(context, '내용을 입력해주세요.');
       return;
     }
 
@@ -59,13 +61,15 @@ class _AddIdeaViewState extends ConsumerState<AddIdeaView> {
           content: content,
         );
 
-    SnackBarUtils.showSuccess(context, '아이디어가 성공적으로 저장되었습니다!');
+    // SnackbarUtils.showSuccess(context, '아이디어가 성공적으로 저장되었습니다!');
 
     context.pop();
   }
 
   @override
   Widget build(BuildContext context) {
+    // 글씨 크기 변경을 실시간으로 반영하기 위해 watch
+    ref.watch(fontSizeNotifierProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -87,11 +91,11 @@ class _AddIdeaViewState extends ConsumerState<AddIdeaView> {
             onPressed: () => context.pop(),
           ),
         ),
-        title: const Text(
+        title: Text(
           '새 아이디어',
           style: TextStyle(
             color: AppColors.textOnPrimary,
-            fontSize: 16,
+            fontSize: AppFontSizes.titleTextSize,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.5,
           ),
@@ -105,11 +109,11 @@ class _AddIdeaViewState extends ConsumerState<AddIdeaView> {
             ),
             child: TextButton(
               onPressed: _saveIdea,
-              child: const Text(
+              child: Text(
                 '저장',
                 style: TextStyle(
                   color: AppColors.textOnPrimary,
-                  fontSize: 12,
+                  fontSize: AppFontSizes.captionTextSize,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -139,8 +143,8 @@ class _AddIdeaViewState extends ConsumerState<AddIdeaView> {
                 child: TextField(
                   controller: _titleController,
                   focusNode: _titleFocusNode,
-                  style: const TextStyle(
-                    fontSize: 15,
+                  style: TextStyle(
+                    fontSize: AppFontSizes.inputTextSize,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                   ),
@@ -148,7 +152,7 @@ class _AddIdeaViewState extends ConsumerState<AddIdeaView> {
                     hintText: '제목을 입력하세요',
                     hintStyle: TextStyle(
                       color: AppColors.textHint,
-                      fontSize: 15,
+                      fontSize: AppFontSizes.inputTextSize,
                       fontWeight: FontWeight.w500,
                     ),
                     border: InputBorder.none,
@@ -181,8 +185,8 @@ class _AddIdeaViewState extends ConsumerState<AddIdeaView> {
                   child: TextField(
                     controller: _contentController,
                     focusNode: _contentFocusNode,
-                    style: const TextStyle(
-                      fontSize: 14,
+                    style: TextStyle(
+                      fontSize: AppFontSizes.bodyTextSize,
                       height: 1.6,
                       color: AppColors.textPrimary,
                     ),
@@ -190,7 +194,7 @@ class _AddIdeaViewState extends ConsumerState<AddIdeaView> {
                       hintText: '아이디어의 내용을 자유롭게 적어보세요',
                       hintStyle: TextStyle(
                         color: AppColors.textHint,
-                        fontSize: 14,
+                        fontSize: AppFontSizes.bodyTextSize,
                         height: 1.6,
                       ),
                       border: InputBorder.none,
@@ -228,10 +232,10 @@ class _AddIdeaViewState extends ConsumerState<AddIdeaView> {
                           ),
                           minimumSize: const Size.fromHeight(56),
                         ),
-                        child: const Text(
+                        child: Text(
                           '취소',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: AppFontSizes.buttonTextSize,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -265,10 +269,10 @@ class _AddIdeaViewState extends ConsumerState<AddIdeaView> {
                           ),
                           minimumSize: const Size.fromHeight(56),
                         ),
-                        child: const Text(
+                        child: Text(
                           '저장하기',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: AppFontSizes.buttonTextSize,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
                           ),

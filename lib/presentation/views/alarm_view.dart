@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:io';
+import 'package:ideamemo/core/utils/font_size_manager.dart';
 
 class AlarmView extends StatefulWidget {
   final String title;
@@ -214,8 +215,8 @@ class _AlarmViewState extends State<AlarmView> with TickerProviderStateMixin {
               // 현재 시간
               Text(
                 _getCurrentTime(),
-                style: const TextStyle(
-                  fontSize: 24,
+                style: TextStyle(
+                  fontSize: AppFontSizes.clockTimeSize,
                   color: Colors.white70,
                   fontWeight: FontWeight.w300,
                 ),
@@ -255,8 +256,8 @@ class _AlarmViewState extends State<AlarmView> with TickerProviderStateMixin {
               // 알람 제목
               Text(
                 _alarmTitle,
-                style: const TextStyle(
-                  fontSize: 32,
+                style: TextStyle(
+                  fontSize: FontSizeManager.getScaledSize(32),
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -270,8 +271,8 @@ class _AlarmViewState extends State<AlarmView> with TickerProviderStateMixin {
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Text(
                   _alarmMessage,
-                  style: const TextStyle(
-                    fontSize: 18,
+                  style: TextStyle(
+                    fontSize: AppFontSizes.headlineTextSize,
                     color: Colors.white70,
                     height: 1.5,
                   ),
@@ -314,9 +315,9 @@ class _AlarmViewState extends State<AlarmView> with TickerProviderStateMixin {
                 ),
                 label: Text(
                   _isPlaying ? '소리 끄기' : '소리 켜기',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white70,
-                    fontSize: 16,
+                    fontSize: AppFontSizes.titleTextSize,
                   ),
                 ),
               ),
@@ -361,9 +362,9 @@ class _AlarmViewState extends State<AlarmView> with TickerProviderStateMixin {
         const SizedBox(height: 10),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
-            fontSize: 14,
+            fontSize: AppFontSizes.buttonTextSize,
             fontWeight: FontWeight.w500,
           ),
         ),

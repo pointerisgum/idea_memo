@@ -1,4 +1,4 @@
-package com.enrich.ideamemo
+package com.enrich.ideamemo.app
 
 import android.content.Context
 import android.content.Intent

@@ -1,99 +1,193 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
-import '../constants/app_colors.dart';
+import 'package:ideamemo/core/utils/font_size_manager.dart';
 
-class SnackBarUtils {
-  SnackBarUtils._();
-
-  static void showSuccess(BuildContext context, String message) {
-    _showCustomSnackBar(
-      context,
-      message,
-      AppColors.success,
-      CupertinoIcons.check_mark_circled_solid,
-    );
-  }
-
+class SnackbarUtils {
+  // 에러 스낵바 (빨간색 배경, 흰색 글씨)
   static void showError(BuildContext context, String message) {
-    _showCustomSnackBar(
-      context,
-      message,
-      AppColors.error,
-      CupertinoIcons.xmark_circle_fill,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: AppFontSizes.bodyTextSize,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 
-  static void showWarning(BuildContext context, String message) {
-    _showCustomSnackBar(
-      context,
-      message,
-      AppColors.warning,
-      CupertinoIcons.exclamationmark_triangle_fill,
+  // 성공 스낵바 (초록색 배경, 흰색 글씨)
+  static void showSuccess(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: AppFontSizes.bodyTextSize,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 
+  // 정보 스낵바 (파란색 배경, 흰색 글씨)
   static void showInfo(BuildContext context, String message) {
-    _showCustomSnackBar(
-      context,
-      message,
-      AppColors.info,
-      CupertinoIcons.info_circle_fill,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: AppFontSizes.bodyTextSize,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        backgroundColor: const Color(0xFF6C5CE7),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 
-  static void _showCustomSnackBar(
+  // 경고 스낵바 (주황색 배경, 흰색 글씨)
+  static void showWarning(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: AppFontSizes.bodyTextSize,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        backgroundColor: Colors.orange,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  // 커스텀 스낵바 (사용자 정의 색상)
+  static void showCustom(
     BuildContext context,
-    String message,
-    Color backgroundColor,
-    IconData icon,
-  ) {
-    final snackBar = SnackBar(
-      content: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
+    String message, {
+    Color backgroundColor = Colors.grey,
+    Color textColor = Colors.white,
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(
+            color: textColor,
+            fontSize: AppFontSizes.bodyTextSize,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        backgroundColor: backgroundColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: duration,
+      ),
+    );
+  }
+
+  // 북마크 스낵바 (파란색 배경, 흰색 글씨)
+  static void showBookmark(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.bookmark,
               color: Colors.white,
               size: 20,
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
+            const SizedBox(width: 8),
+            Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
-                fontSize: 12,
+                fontSize: AppFontSizes.bodyTextSize,
                 fontWeight: FontWeight.w500,
-                letterSpacing: 0.3,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+        backgroundColor: Colors.blue.shade600,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        margin: const EdgeInsets.all(16),
       ),
-      backgroundColor: backgroundColor,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      margin: const EdgeInsets.all(16),
-      elevation: 8,
-      duration: const Duration(seconds: 3),
-      // action: SnackBarAction(
-      //   label: '확인',
-      //   textColor: Colors.white,
-      //   backgroundColor: Colors.white.withOpacity(0.2),
-      //   onPressed: () {
-      //     ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      //   },
-      // ),
     );
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  // 고정 스낵바 (오렌지색 배경, 흰색 글씨)
+  static void showPin(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.push_pin,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              message,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: AppFontSizes.bodyTextSize,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.orange.shade600,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 }

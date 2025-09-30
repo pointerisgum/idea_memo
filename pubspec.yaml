@@ -1,4 +1,4 @@
-name: overlay
+name: ideamemo
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -42,7 +42,7 @@ dependencies:
   wakelock_plus: ^1.2.8
   
   # 로컬 알림 (알람 기능용)
-  flutter_local_notifications: ^17.2.3
+  flutter_local_notifications: ^17.2.2
   
   # 디바이스 정보 및 상태 관리
   device_info_plus: ^10.1.2
@@ -74,6 +74,30 @@ dependencies:
   
   # 날짜 및 시간 형식화
   intl: ^0.19.0
+  
+  # Firebase 관련 패키지
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  firebase_remote_config: ^5.2.0
+  cloud_firestore: ^5.4.4
+  google_sign_in: ^6.2.1
+  flutter_slidable: ^3.1.1
+  sign_in_with_apple: ^6.1.1
+  kakao_flutter_sdk: ^1.9.6
+  
+  # 패키지 정보
+  package_info_plus: ^8.0.2
+  
+  # 라이센스 표시
+  flutter_oss_licenses: ^2.0.1
+  flutter_signin_button: ^2.1.1
+  kakao_flutter_sdk_user: ^1.9.7+3
+  
+  # Lottie 애니메이션
+  lottie: ^3.1.2
+  
+  # 텍스트 애니메이션
+  animated_text_kit: ^4.2.2
 
 dev_dependencies:
   flutter_test:
@@ -107,7 +131,9 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    # - assets/sounds/
+    - assets/
+    - assets/icons/
+    - assets/logo/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

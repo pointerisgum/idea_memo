@@ -18,6 +18,9 @@ final _privateConstructorUsedError = UnsupportedError(
 mixin _$IdeaViewState {
   List<Idea> get ideas => throw _privateConstructorUsedError;
   bool get isLoading => throw _privateConstructorUsedError;
+  bool get isBookmarkFilterOn =>
+      throw _privateConstructorUsedError; // 북마크 필터 상태
+  SortType get sortType => throw _privateConstructorUsedError; // 정렬 타입
   String? get error => throw _privateConstructorUsedError;
 
   /// Create a copy of IdeaViewState
@@ -33,7 +36,12 @@ abstract class $IdeaViewStateCopyWith<$Res> {
           IdeaViewState value, $Res Function(IdeaViewState) then) =
       _$IdeaViewStateCopyWithImpl<$Res, IdeaViewState>;
   @useResult
-  $Res call({List<Idea> ideas, bool isLoading, String? error});
+  $Res call(
+      {List<Idea> ideas,
+      bool isLoading,
+      bool isBookmarkFilterOn,
+      SortType sortType,
+      String? error});
 }
 
 /// @nodoc
@@ -53,6 +61,8 @@ class _$IdeaViewStateCopyWithImpl<$Res, $Val extends IdeaViewState>
   $Res call({
     Object? ideas = null,
     Object? isLoading = null,
+    Object? isBookmarkFilterOn = null,
+    Object? sortType = null,
     Object? error = freezed,
   }) {
     return _then(_value.copyWith(
@@ -64,6 +74,14 @@ class _$IdeaViewStateCopyWithImpl<$Res, $Val extends IdeaViewState>
           ? _value.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
               as bool,
+      isBookmarkFilterOn: null == isBookmarkFilterOn
+          ? _value.isBookmarkFilterOn
+          : isBookmarkFilterOn // ignore: cast_nullable_to_non_nullable
+              as bool,
+      sortType: null == sortType
+          ? _value.sortType
+          : sortType // ignore: cast_nullable_to_non_nullable
+              as SortType,
       error: freezed == error
           ? _value.error
           : error // ignore: cast_nullable_to_non_nullable
@@ -80,7 +98,12 @@ abstract class _$$IdeaViewStateImplCopyWith<$Res>
       __$$IdeaViewStateImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({List<Idea> ideas, bool isLoading, String? error});
+  $Res call(
+      {List<Idea> ideas,
+      bool isLoading,
+      bool isBookmarkFilterOn,
+      SortType sortType,
+      String? error});
 }
 
 /// @nodoc
@@ -98,6 +121,8 @@ class __$$IdeaViewStateImplCopyWithImpl<$Res>
   $Res call({
     Object? ideas = null,
     Object? isLoading = null,
+    Object? isBookmarkFilterOn = null,
+    Object? sortType = null,
     Object? error = freezed,
   }) {
     return _then(_$IdeaViewStateImpl(
@@ -109,6 +134,14 @@ class __$$IdeaViewStateImplCopyWithImpl<$Res>
           ? _value.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
               as bool,
+      isBookmarkFilterOn: null == isBookmarkFilterOn
+          ? _value.isBookmarkFilterOn
+          : isBookmarkFilterOn // ignore: cast_nullable_to_non_nullable
+              as bool,
+      sortType: null == sortType
+          ? _value.sortType
+          : sortType // ignore: cast_nullable_to_non_nullable
+              as SortType,
       error: freezed == error
           ? _value.error
           : error // ignore: cast_nullable_to_non_nullable
@@ -119,9 +152,15 @@ class __$$IdeaViewStateImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$IdeaViewStateImpl implements _IdeaViewState {
+class _$IdeaViewStateImpl
+    with DiagnosticableTreeMixin
+    implements _IdeaViewState {
   const _$IdeaViewStateImpl(
-      {final List<Idea> ideas = const [], this.isLoading = false, this.error})
+      {final List<Idea> ideas = const [],
+      this.isLoading = false,
+      this.isBookmarkFilterOn = false,
+      this.sortType = SortType.newest,
+      this.error})
       : _ideas = ideas;
 
   final List<Idea> _ideas;
@@ -137,11 +176,31 @@ class _$IdeaViewStateImpl implements _IdeaViewState {
   @JsonKey()
   final bool isLoading;
   @override
+  @JsonKey()
+  final bool isBookmarkFilterOn;
+// 북마크 필터 상태
+  @override
+  @JsonKey()
+  final SortType sortType;
+// 정렬 타입
+  @override
   final String? error;
 
   @override
-  String toString() {
-    return 'IdeaViewState(ideas: $ideas, isLoading: $isLoading, error: $error)';
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'IdeaViewState(ideas: $ideas, isLoading: $isLoading, isBookmarkFilterOn: $isBookmarkFilterOn, sortType: $sortType, error: $error)';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(DiagnosticsProperty('type', 'IdeaViewState'))
+      ..add(DiagnosticsProperty('ideas', ideas))
+      ..add(DiagnosticsProperty('isLoading', isLoading))
+      ..add(DiagnosticsProperty('isBookmarkFilterOn', isBookmarkFilterOn))
+      ..add(DiagnosticsProperty('sortType', sortType))
+      ..add(DiagnosticsProperty('error', error));
   }
 
   @override
@@ -152,12 +211,21 @@ class _$IdeaViewStateImpl implements _IdeaViewState {
             const DeepCollectionEquality().equals(other._ideas, _ideas) &&
             (identical(other.isLoading, isLoading) ||
                 other.isLoading == isLoading) &&
+            (identical(other.isBookmarkFilterOn, isBookmarkFilterOn) ||
+                other.isBookmarkFilterOn == isBookmarkFilterOn) &&
+            (identical(other.sortType, sortType) ||
+                other.sortType == sortType) &&
             (identical(other.error, error) || other.error == error));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType,
-      const DeepCollectionEquality().hash(_ideas), isLoading, error);
+  int get hashCode => Object.hash(
+      runtimeType,
+      const DeepCollectionEquality().hash(_ideas),
+      isLoading,
+      isBookmarkFilterOn,
+      sortType,
+      error);
 
   /// Create a copy of IdeaViewState
   /// with the given fields replaced by the non-null parameter values.
@@ -172,12 +240,18 @@ abstract class _IdeaViewState implements IdeaViewState {
   const factory _IdeaViewState(
       {final List<Idea> ideas,
       final bool isLoading,
+      final bool isBookmarkFilterOn,
+      final SortType sortType,
       final String? error}) = _$IdeaViewStateImpl;
 
   @override
   List<Idea> get ideas;
   @override
   bool get isLoading;
+  @override
+  bool get isBookmarkFilterOn; // 북마크 필터 상태
+  @override
+  SortType get sortType; // 정렬 타입
   @override
   String? get error;
 

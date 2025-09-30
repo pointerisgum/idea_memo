@@ -1,16 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:ideamemo/firebase_options.dart';
+import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'core/router/app_router.dart';
+import 'core/utils/font_size_manager.dart';
 import 'presentation/views/alarm_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Firebase 초기화
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // 카카오 SDK 초기화
+  KakaoSdk.init(
+    nativeAppKey: 'fb065d8daf5c087c4e6c0fbdc70f3e0b',
+  );
+
   // Timezone 초기화
   tz.initializeTimeZones();
   tz.setLocalLocation(tz.getLocation('Asia/Seoul'));
+
+  // 글씨 크기 설정 초기화
+  await FontSizeManager.loadFontSize();
 
   runApp(const ProviderScope(child: MyApp()));
 }

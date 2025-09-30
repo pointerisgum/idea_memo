@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
-import '../viewmodels/idea_viewmodel.dart';
-import '../viewmodels/home_viewmodel.dart';
-import '../../domain/entities/idea.dart';
-import '../../core/constants/app_colors.dart';
-import '../../core/utils/snackbar_utils.dart';
+import 'package:ideamemo/presentation/viewmodels/idea_viewmodel.dart';
+import 'package:ideamemo/presentation/viewmodels/home_viewmodel.dart';
+import 'package:ideamemo/presentation/viewmodels/auth_viewmodel.dart';
+import 'package:ideamemo/presentation/viewmodels/font_size_viewmodel.dart';
+import 'package:ideamemo/presentation/widgets/time_widget.dart';
+import 'package:ideamemo/domain/entities/idea.dart';
+import 'package:ideamemo/core/constants/app_colors.dart';
+import 'package:ideamemo/core/utils/font_size_manager.dart';
 
 class MainView extends ConsumerStatefulWidget {
   const MainView({super.key});
@@ -19,28 +23,34 @@ class MainView extends ConsumerStatefulWidget {
 }
 
 class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver {
-  Timer? _timer;
-  DateTime _currentTime = DateTime.now();
   bool _hasShownPermissionSheet = false;
   bool _isPermissionSheetShowing = false; // 현재 바텀시트가 표시 중인지 추적
+  bool _hasLoadedIdeas = false; // 아이디어 로딩 상태 추적
 
   @override
   void initState() {
     super.initState();
-    // 1초마다 시간 업데이트
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _currentTime = DateTime.now();
-      });
-    });
-
     // 앱 생명주기 관찰자 등록
     WidgetsBinding.instance.addObserver(this);
+
+    // 인증 상태 확인 후 아이디어 로드
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAuthAndLoadIdeas();
+    });
+  }
+
+  // 인증 상태 확인 후 아이디어 로드
+  void _checkAuthAndLoadIdeas() async {
+    final authState = ref.read(authViewModelProvider);
+    if (authState.isLoggedIn && !_hasLoadedIdeas) {
+      debugPrint('🔄 [MAIN] 인증 확인됨 - 아이디어 로드 시작');
+      _hasLoadedIdeas = true;
+      await ref.read(ideaViewModelNotifierProvider.notifier).loadIdeas();
+    }
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -96,6 +106,22 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     final ideaState = ref.watch(ideaViewModelNotifierProvider);
+    // 글씨 크기 변경을 실시간으로 반영하기 위해 watch
+    ref.watch(fontSizeNotifierProvider);
+
+    // 인증 상태 변화 감지하여 아이디어 로드
+    ref.listen(authViewModelProvider, (previous, next) {
+      if (next.isLoggedIn && !_hasLoadedIdeas) {
+        debugPrint('🔄 [MAIN] 인증 상태 변화 감지 - 아이디어 로드');
+        _hasLoadedIdeas = true;
+        Future.microtask(() {
+          ref.read(ideaViewModelNotifierProvider.notifier).loadIdeas();
+        });
+      } else if (!next.isLoggedIn && _hasLoadedIdeas) {
+        // 로그아웃 시 상태 리셋
+        _hasLoadedIdeas = false;
+      }
+    });
 
     // HomeViewModel 상태를 올바르게 가져오기
     final homeState = ref.watch(homeViewModelProvider);
@@ -126,7 +152,7 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
 
             // 중간 영역 (리스트뷰)
             Expanded(
-              child: _buildIdeaList(ideaState.ideas),
+              child: _buildIdeaList(ref.read(ideaViewModelNotifierProvider.notifier).filteredIdeas, ideaState.isLoading, ideaState.error),
             ),
 
             // 하단 영역 (높이: 60)
@@ -169,11 +195,11 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
               mainAxisSize: MainAxisSize.min,
               children: [
                 // 상단 텍스트
-                const Text(
+                Text(
                   '편리한 이용을 위해\n아래의 접근권한 허용이 필요합니다',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppFontSizes.titleTextSize,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                   ),
@@ -214,10 +240,10 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
                         children: [
                           Row(
                             children: [
-                              const Text(
+                              Text(
                                 '다른 앱 위에 표시',
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: AppFontSizes.bodyTextSize,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.textPrimary,
                                 ),
@@ -226,7 +252,7 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
                               Text(
                                 '(필수)',
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: AppFontSizes.captionTextSize,
                                   color: AppColors.secondary,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -234,10 +260,10 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
                             ],
                           ),
                           const SizedBox(height: 4),
-                          const Text(
+                          Text(
                             '앱 서비스 실행',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppFontSizes.captionTextSize,
                               color: AppColors.textSecondary,
                             ),
                           ),
@@ -272,10 +298,10 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       '동의',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: AppFontSizes.buttonTextSize,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.5,
                       ),
@@ -295,11 +321,8 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
   }
 
   Widget _buildTopSection() {
-    final dateFormatter = DateFormat('yyyy년 MM월 dd일');
-    final timeFormatter = DateFormat('HH:mm');
-
     return Container(
-      height: 90,
+      height: 100,
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
@@ -313,52 +336,83 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
           ),
         ],
       ),
-      child: Row(
+      child: Stack(
         children: [
-          const SizedBox(width: 50),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  dateFormatter.format(_currentTime),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textOnPrimary,
-                    letterSpacing: 0.5,
+          // 정렬 버튼을 왼쪽에 배치
+          Positioned(
+            left: 16,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      _showSortBottomSheet();
+                    },
+                    child: const Icon(
+                      CupertinoIcons.sort_down,
+                      color: AppColors.textOnPrimary,
+                      size: 20,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  timeFormatter.format(_currentTime),
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textOnPrimary,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-          Container(
-            width: 44,
-            height: 44,
-            margin: const EdgeInsets.only(right: 16),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              icon: const Icon(
-                CupertinoIcons.settings,
-                color: AppColors.textOnPrimary,
-                size: 20,
+          // TimeWidget을 정중앙에 배치
+          Positioned.fill(
+            child: Center(
+              child: TimeWidget(
+                showDate: true,
+                dateStyle: TextStyle(
+                  fontSize: AppFontSizes.clockDateSize,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textOnPrimary,
+                  letterSpacing: 0.5,
+                ),
+                timeStyle: TextStyle(
+                  fontSize: AppFontSizes.clockTimeSize,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textOnPrimary,
+                  letterSpacing: 1.2,
+                ),
               ),
-              onPressed: () {
-                SnackBarUtils.showInfo(context, '설정 화면은 추후 구현 예정입니다');
-              },
+            ),
+          ),
+          // 설정 버튼을 오른쪽에 배치
+          Positioned(
+            right: 16,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: const Icon(
+                    CupertinoIcons.settings,
+                    color: AppColors.textOnPrimary,
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    context.push('/settings');
+                  },
+                ),
+              ),
             ),
           ),
         ],
@@ -366,8 +420,31 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
     );
   }
 
-  Widget _buildIdeaList(List<Idea> ideas) {
-    if (ideas.isEmpty) {
+  Widget _buildIdeaList(List<Idea> ideas, bool isLoading, String? error) {
+    // 로딩 상태
+    if (isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              color: AppColors.primary,
+            ),
+            SizedBox(height: 16),
+            Text(
+              '아이디어를 불러오는 중...',
+              style: TextStyle(
+                fontSize: AppFontSizes.bodyTextSize,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 에러 상태
+    if (error != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -376,36 +453,101 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                gradient: AppColors.accentGradient,
+                color: Colors.red.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(40),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.accent.withOpacity(0.3),
-                    offset: const Offset(0, 8),
-                    blurRadius: 24,
-                  ),
-                ],
               ),
               child: const Icon(
-                CupertinoIcons.lightbulb_fill,
+                CupertinoIcons.exclamationmark_triangle_fill,
                 size: 36,
-                color: AppColors.textOnPrimary,
+                color: Colors.red,
               ),
             ),
             const SizedBox(height: 24),
             Text(
-              '아직 아이디어가 없습니다',
+              '데이터를 불러올 수 없습니다',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSizes.titleTextSize,
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              '새로운 아이디어를 추가해보세요!',
+              error,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppFontSizes.captionTextSize,
+                color: AppColors.textHint,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                ref.read(ideaViewModelNotifierProvider.notifier).loadIdeas();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+              child: Text('다시 시도'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 빈 상태
+    if (ideas.isEmpty) {
+      final ideaState = ref.watch(ideaViewModelNotifierProvider);
+      final isBookmarkFilterOn = ideaState.isBookmarkFilterOn;
+
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                gradient: isBookmarkFilterOn
+                    ? LinearGradient(
+                        colors: [
+                          Colors.blue.shade400,
+                          Colors.blue.shade600
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : AppColors.accentGradient,
+                borderRadius: BorderRadius.circular(40),
+                boxShadow: [
+                  BoxShadow(
+                    color: isBookmarkFilterOn ? Colors.blue.withOpacity(0.3) : AppColors.accent.withOpacity(0.3),
+                    offset: const Offset(0, 8),
+                    blurRadius: 24,
+                  ),
+                ],
+              ),
+              child: Icon(
+                isBookmarkFilterOn ? CupertinoIcons.bookmark_fill : CupertinoIcons.lightbulb_fill,
+                size: 36,
+                color: AppColors.textOnPrimary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              isBookmarkFilterOn ? '북마크한 아이디어가 없습니다' : '아직 아이디어가 없습니다',
+              style: TextStyle(
+                fontSize: AppFontSizes.titleTextSize,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isBookmarkFilterOn ? '' : '새로운 아이디어를 추가해보세요!',
+              style: TextStyle(
+                fontSize: AppFontSizes.bodyTextSize,
                 color: AppColors.textHint,
               ),
             ),
@@ -414,6 +556,7 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
       );
     }
 
+    // 정상 상태 - 아이디어 목록
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: ideas.length,
@@ -425,133 +568,262 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
   }
 
   Widget _buildDismissibleIdeaItem(Idea idea) {
-    return Dismissible(
-      key: Key(idea.id),
-      direction: DismissDirection.endToStart,
-      confirmDismiss: (direction) async {
-        return await _showDeleteConfirmDialog(idea);
-      },
-      onDismissed: (direction) {
-        ref.read(ideaViewModelNotifierProvider.notifier).deleteIdea(idea.id);
-        SnackBarUtils.showSuccess(context, '아이디어가 삭제되었습니다');
-      },
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          gradient: AppColors.secondaryGradient,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Slidable(
+        key: Key(idea.id),
+        endActionPane: ActionPane(
+          motion: const ScrollMotion(),
+          extentRatio: 0.7, // 전체 너비의 60%를 액션 영역으로 사용 (240px 정도)
           children: [
-            Text(
-              '삭제',
-              style: TextStyle(
-                color: AppColors.textOnPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+            // 상단고정 버튼
+            CustomSlidableAction(
+              flex: 1, // 동일한 비율로 분할 (80px씩)
+              onPressed: (context) async {
+                debugPrint('🔄 상단고정 클릭: ${idea.title}');
+                await ref.read(ideaViewModelNotifierProvider.notifier).togglePinIdea(idea.id, context);
+
+                // 에러가 있으면 스낵바로 표시
+                final error = ref.read(ideaViewModelNotifierProvider).error;
+                if (error != null && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(error),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  ref.read(ideaViewModelNotifierProvider.notifier).clearError();
+                }
+              },
+              backgroundColor: idea.isPinned
+                  ? Colors.orange.withOpacity(0.9) // 고정된 경우 진한 색
+                  : Colors.orange.withOpacity(0.7), // 일반 상태
+              child: Icon(
+                idea.isPinned ? CupertinoIcons.pin_fill : CupertinoIcons.pin,
+                color: Colors.white,
+                size: 28,
               ),
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
+            // 북마크 버튼
+            CustomSlidableAction(
+              flex: 1, // 동일한 비율로 분할 (80px씩)
+              onPressed: (context) async {
+                debugPrint('🔄 북마크 클릭: ${idea.title}');
+                await ref.read(ideaViewModelNotifierProvider.notifier).toggleBookmarkIdea(idea.id, context);
+
+                // 에러가 있으면 스낵바로 표시
+                final error = ref.read(ideaViewModelNotifierProvider).error;
+                if (error != null && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(error),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  ref.read(ideaViewModelNotifierProvider.notifier).clearError();
+                }
+              },
+              backgroundColor: idea.isBookmarked
+                  ? Colors.blue.withOpacity(0.9) // 북마크된 경우 진한 색
+                  : Colors.blue.withOpacity(0.7), // 일반 상태
+              child: Icon(
+                idea.isBookmarked ? CupertinoIcons.bookmark_fill : CupertinoIcons.bookmark,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+            // 삭제 버튼
+            CustomSlidableAction(
+              flex: 1, // 동일한 비율로 분할 (80px씩)
+              onPressed: (context) async {
+                debugPrint('🔄 삭제 클릭: ${idea.title}');
+                final shouldDelete = await _showDeleteConfirmDialog(idea);
+                if (shouldDelete == true) {
+                  ref.read(ideaViewModelNotifierProvider.notifier).deleteIdea(idea.id);
+                }
+              },
+              backgroundColor: Colors.red.withOpacity(0.7),
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(16),
+                bottomRight: Radius.circular(16),
               ),
               child: const Icon(
                 CupertinoIcons.trash_fill,
-                color: AppColors.textOnPrimary,
-                size: 20,
+                color: Colors.white,
+                size: 28,
               ),
             ),
           ],
         ),
+        child: _buildIdeaItem(idea),
       ),
-      child: _buildIdeaItem(idea),
     );
   }
 
   Widget _buildIdeaItem(Idea idea) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: idea.isPinned
+            ? Colors.orange.withOpacity(0.03) // 고정된 아이디어는 살짝 오렌지 배경
+            : AppColors.surface,
         borderRadius: BorderRadius.circular(16),
+        border: idea.isPinned ? Border.all(color: Colors.orange.withOpacity(0.2), width: 1) : null,
         boxShadow: [
           BoxShadow(
-            color: AppColors.lightShadow,
+            color: idea.isPinned ? Colors.orange.withOpacity(0.1) : AppColors.lightShadow,
             offset: const Offset(0, 4),
             blurRadius: 12,
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            context.push('/idea-detail/${idea.id}');
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 4,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    idea.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        gradient: idea.isPinned
+                            ? const LinearGradient(
+                                colors: [
+                                  Colors.orange,
+                                  Colors.deepOrange
+                                ],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              )
+                            : AppColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
-                    maxLines: 1,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        idea.title,
+                        style: TextStyle(
+                          fontSize: AppFontSizes.ideaTitleSize,
+                          fontWeight: FontWeight.bold,
+                          color: idea.isPinned ? Colors.orange.shade700 : AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    // 세로 점 메뉴 버튼
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            _showIdeaMenuBottomSheet(idea);
+                          },
+                          child: const Icon(
+                            CupertinoIcons.ellipsis_vertical,
+                            size: 18,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (idea.content.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    idea.content,
+                    style: TextStyle(
+                      fontSize: AppFontSizes.ideaContentSize,
+                      color: AppColors.textSecondary,
+                      height: 1.5,
+                    ),
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
-            ),
-            if (idea.content.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                idea.content,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                  height: 1.5,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.grey100,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    DateFormat('MM/dd HH:mm').format(idea.createdAt),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textHint,
-                      fontWeight: FontWeight.w500,
+                ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: idea.isPinned
+                            ? Colors.orange.withOpacity(0.2) // 고정된 글은 더 진한 오렌지 배경
+                            : AppColors.grey100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        DateFormat('yy.MM.dd HH:mm').format(idea.createdAt),
+                        style: TextStyle(
+                          fontSize: AppFontSizes.ideaDateSize,
+                          color: idea.isPinned
+                              ? Colors.orange.shade400 // 고정된 글은 오렌지 텍스트
+                              : AppColors.textHint,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
-                  ),
+                    const Spacer(), // 공간을 채워서 아이콘들을 우측으로 밀어냄
+                    // 우측 하단 아이콘들 (고정, 북마크)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 고정 아이콘
+                        if (idea.isPinned) ...[
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Icon(
+                              CupertinoIcons.pin_fill,
+                              size: 14,
+                              color: Colors.orange.shade700,
+                            ),
+                          ),
+                          if (idea.isBookmarked) const SizedBox(width: 6), // 간격
+                        ],
+                        // 북마크 아이콘
+                        if (idea.isBookmarked)
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Icon(
+                              CupertinoIcons.bookmark_fill,
+                              size: 14,
+                              color: Colors.blue.shade700,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -572,6 +844,9 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
       ),
       child: Row(
         children: [
+          // 북마크 필터 버튼
+          _buildBookmarkFilterButton(),
+          const SizedBox(width: 16),
           Expanded(
             child: _buildAddButton(),
           ),
@@ -582,6 +857,46 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildBookmarkFilterButton() {
+    final ideaState = ref.watch(ideaViewModelNotifierProvider);
+    final isBookmarkFilterOn = ideaState.isBookmarkFilterOn;
+
+    return Container(
+      width: 56, // 정사각형 모양
+      height: 56,
+      decoration: BoxDecoration(
+        color: Colors.blue.withOpacity(0.7), // 스와이프 액션과 동일한 배경색
+        borderRadius: BorderRadius.circular(16), // 다른 버튼들과 동일한 borderRadius
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.3),
+            offset: const Offset(0, 2),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            ref.read(ideaViewModelNotifierProvider.notifier).toggleBookmarkFilter();
+          },
+          child: Center(
+            child: Icon(
+              isBookmarkFilterOn
+                  ? CupertinoIcons.bookmark_fill // 활성화 시 채워진 아이콘
+                  : CupertinoIcons.bookmark, // 비활성화 시 빈 아이콘
+              color: Colors.white, // 항상 흰색 아이콘
+              size: 24,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -611,10 +926,10 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
           color: AppColors.textOnPrimary,
           size: 22,
         ),
-        label: const Text(
+        label: Text(
           '추가',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: AppFontSizes.buttonTextSize,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -656,10 +971,10 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
           size: 20,
           color: AppColors.textOnPrimary,
         ),
-        label: const Text(
+        label: Text(
           '잠금해제',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: AppFontSizes.buttonLargeTextSize,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -685,10 +1000,10 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        title: const Text(
+        title: Text(
           '아이디어 삭제',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: AppFontSizes.titleTextSize,
             fontWeight: FontWeight.bold,
             color: AppColors.textPrimary,
           ),
@@ -700,7 +1015,7 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
             Text(
               '이 아이디어를 삭제하시겠습니까?',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppFontSizes.bodyTextSize,
                 color: AppColors.textSecondary,
               ),
             ),
@@ -714,7 +1029,7 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
               '취소',
               style: TextStyle(
                 color: AppColors.textSecondary,
-                fontSize: 14,
+                fontSize: AppFontSizes.buttonTextSize,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -729,17 +1044,338 @@ class _MainViewState extends ConsumerState<MainView> with WidgetsBindingObserver
                 HapticFeedback.mediumImpact();
                 Navigator.of(context).pop(true);
               },
-              child: const Text(
+              child: Text(
                 '삭제',
                 style: TextStyle(
                   color: AppColors.textOnPrimary,
-                  fontSize: 14,
+                  fontSize: AppFontSizes.buttonTextSize,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 아이디어 메뉴 바텀시트 표시
+  void _showIdeaMenuBottomSheet(Idea idea) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 핸들바
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.textHint.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+
+              // 아이디어 제목 표시
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  idea.title,
+                  style: TextStyle(
+                    fontSize: AppFontSizes.titleTextSize,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // 메뉴 아이템들
+              _buildMenuTile(
+                icon: idea.isPinned ? CupertinoIcons.pin_fill : CupertinoIcons.pin,
+                title: idea.isPinned ? '고정 해제' : '상단 고정',
+                color: Colors.orange,
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  await ref.read(ideaViewModelNotifierProvider.notifier).togglePinIdea(idea.id, context);
+
+                  // 에러 처리
+                  final error = ref.read(ideaViewModelNotifierProvider).error;
+                  if (error != null && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(error),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    ref.read(ideaViewModelNotifierProvider.notifier).clearError();
+                  }
+                },
+              ),
+
+              _buildMenuTile(
+                icon: idea.isBookmarked ? CupertinoIcons.bookmark_fill : CupertinoIcons.bookmark,
+                title: idea.isBookmarked ? '북마크 해제' : '북마크 추가',
+                color: Colors.blue,
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  await ref.read(ideaViewModelNotifierProvider.notifier).toggleBookmarkIdea(idea.id, context);
+
+                  // 에러 처리
+                  final error = ref.read(ideaViewModelNotifierProvider).error;
+                  if (error != null && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(error),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    ref.read(ideaViewModelNotifierProvider.notifier).clearError();
+                  }
+                },
+              ),
+
+              _buildMenuTile(
+                icon: CupertinoIcons.trash,
+                title: '삭제',
+                color: Colors.red,
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  final shouldDelete = await _showDeleteConfirmDialog(idea);
+                  if (shouldDelete == true) {
+                    ref.read(ideaViewModelNotifierProvider.notifier).deleteIdea(idea.id);
+                  }
+                },
+              ),
+
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 메뉴 타일 위젯
+  Widget _buildMenuTile({
+    required IconData icon,
+    required String title,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.textHint.withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onTap();
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 20,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: AppFontSizes.titleTextSize,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                // Icon(
+                //   CupertinoIcons.chevron_right,
+                //   size: 16,
+                //   color: AppColors.textHint,
+                // ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 정렬 옵션 바텀시트 표시
+  void _showSortBottomSheet() {
+    final currentSortType = ref.read(ideaViewModelNotifierProvider).sortType;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 핸들바
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.textHint.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+
+              // 제목
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  '정렬 방식 선택',
+                  style: TextStyle(
+                    fontSize: AppFontSizes.headlineTextSize,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // 정렬 옵션들
+              ...SortType.values.map((sortType) => _buildSortTile(
+                    sortType: sortType,
+                    isSelected: currentSortType == sortType,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      ref.read(ideaViewModelNotifierProvider.notifier).changeSortType(sortType);
+                    },
+                  )),
+
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 정렬 타일 위젯
+  Widget _buildSortTile({
+    required SortType sortType,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    IconData getIconForSortType(SortType type) {
+      switch (type) {
+        case SortType.newest:
+          return CupertinoIcons.sort_down;
+        case SortType.oldest:
+          return CupertinoIcons.sort_up;
+        case SortType.titleAZ:
+          return CupertinoIcons.textformat_abc;
+        case SortType.titleZA:
+          return CupertinoIcons.textformat_abc_dottedunderline;
+      }
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      decoration: BoxDecoration(
+        color: isSelected ? AppColors.primary.withOpacity(0.1) : AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected ? AppColors.primary.withOpacity(0.3) : AppColors.textHint.withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onTap();
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.primary.withOpacity(0.2) : AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    getIconForSortType(sortType),
+                    size: 20,
+                    color: isSelected ? AppColors.primary : AppColors.primary.withOpacity(0.7),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    sortType.displayName,
+                    style: TextStyle(
+                      fontSize: AppFontSizes.titleTextSize,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                      color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  Icon(
+                    CupertinoIcons.checkmark_circle_fill,
+                    size: 20,
+                    color: AppColors.primary,
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
