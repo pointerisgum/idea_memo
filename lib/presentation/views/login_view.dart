@@ -111,7 +111,7 @@ class _LoginViewState extends ConsumerState<LoginView> with TickerProviderStateM
         height: 400,
         color: Colors.transparent,
         child: Lottie.asset(
-          'assets/Idea_bulb.json',
+          'assets/logo/idea_bulb.json',
           controller: _lottieController,
           fit: BoxFit.contain,
           repeat: false,
