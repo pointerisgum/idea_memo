@@ -156,9 +156,12 @@ class _AlarmViewState extends State<AlarmView> with TickerProviderStateMixin {
     if (Platform.isAndroid) {
       try {
         await MethodChannel('auto_lockscreen_channel').invokeMethod('stopAlarmSound');
+        debugPrint('🤖 Android 네이티브 사운드 정지');
       } catch (e) {
         debugPrint('네이티브 사운드 정지 실패: $e');
       }
+    } else {
+      debugPrint('🍎 iOS는 시스템 사운드만 사용');
     }
 
     _pulseController.stop();
@@ -177,9 +180,12 @@ class _AlarmViewState extends State<AlarmView> with TickerProviderStateMixin {
     if (Platform.isAndroid) {
       try {
         await MethodChannel('auto_lockscreen_channel').invokeMethod('stopAlarmSound');
+        debugPrint('🤖 Android 네이티브 사운드 정지 (스누즈)');
       } catch (e) {
         debugPrint('네이티브 사운드 정지 실패: $e');
       }
+    } else {
+      debugPrint('🍎 iOS는 시스템 사운드만 사용 (스누즈)');
     }
 
     _pulseController.stop();

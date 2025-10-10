@@ -98,8 +98,22 @@ class HomeViewModel extends _$HomeViewModel {
 
   Future<void> _initializeNotifications() async {
     try {
+      // Android 설정
       const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
-      const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+
+      // iOS 설정
+      const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
+
+      // 플랫폼별 초기화 설정
+      const InitializationSettings initializationSettings = InitializationSettings(
+        android: initializationSettingsAndroid,
+        iOS: initializationSettingsIOS,
+      );
+
       final bool? initialized = await _notificationsPlugin.initialize(initializationSettings);
       debugPrint('📱 Notification 초기화 결과: $initialized');
     } catch (e) {
@@ -173,7 +187,10 @@ class HomeViewModel extends _$HomeViewModel {
 
   // 권한 요청 메서드
   Future<void> requestOverlayPermission() async {
-    if (!Platform.isAndroid) return;
+    if (!Platform.isAndroid) {
+      debugPrint('🍎 iOS는 오버레이 권한이 필요하지 않습니다.');
+      return;
+    }
 
     try {
       debugPrint('🔄 오버레이 권한 요청 시작');
@@ -187,7 +204,7 @@ class HomeViewModel extends _$HomeViewModel {
 
   // 외부에서 권한 체크할 수 있는 공개 메서드
   Future<bool> checkOverlayPermission() async {
-    if (!Platform.isAndroid) return true;
+    if (!Platform.isAndroid) return true; // iOS는 오버레이 권한 불필요
 
     try {
       final hasPermission = await _autoLockScreenChannel.invokeMethod('checkOverlayPermission');
@@ -223,6 +240,20 @@ class HomeViewModel extends _$HomeViewModel {
           final result = await Permission.scheduleExactAlarm.request();
           if (result != PermissionStatus.granted) {
             _setMessage('❌ 정확한 알람 권한이 거부되어 알람을 설정할 수 없습니다.');
+            _setLoading(false);
+            return;
+          }
+        }
+      }
+
+      // iOS 알림 권한 확인
+      if (Platform.isIOS) {
+        final notificationPermission = await Permission.notification.status;
+        if (notificationPermission != PermissionStatus.granted) {
+          _setMessage('알림 권한이 필요합니다. 권한을 허용해주세요.');
+          final result = await Permission.notification.request();
+          if (result != PermissionStatus.granted) {
+            _setMessage('❌ 알림 권한이 거부되어 알람을 설정할 수 없습니다.');
             _setLoading(false);
             return;
           }
@@ -398,7 +429,10 @@ class HomeViewModel extends _$HomeViewModel {
 
   // 배터리 최적화 예외 요청 (사용자가 직접 선택할 때만)
   Future<void> requestBatteryOptimizationExemption() async {
-    if (!Platform.isAndroid) return;
+    if (!Platform.isAndroid) {
+      debugPrint('🍎 iOS는 배터리 최적화 설정이 필요하지 않습니다.');
+      return;
+    }
 
     try {
       await _autoLockScreenChannel.invokeMethod('requestBatteryOptimizationExemption');
@@ -410,10 +444,14 @@ class HomeViewModel extends _$HomeViewModel {
 
   // 잠금화면 모드 종료
   Future<void> exitLockScreenMode() async {
-    if (!Platform.isAndroid) return;
+    if (!Platform.isAndroid) {
+      debugPrint('🍎 iOS는 잠금화면 모드가 지원되지 않습니다.');
+      return;
+    }
 
     try {
       await _autoLockScreenChannel.invokeMethod('exitLockScreenMode');
+      debugPrint('🔒 잠금화면 모드 종료됨');
     } catch (e) {
       _setMessage('잠금화면 모드 종료 중 오류: $e');
     }
