@@ -141,9 +141,9 @@ class _LoginViewState extends ConsumerState<LoginView> with TickerProviderStateM
         child: AnimatedTextKit(
           animatedTexts: [
             TyperAnimatedText(
-              '아이디어 메모',
+              '생각은 내가 하고',
               textStyle: TextStyle(
-                fontSize: 30,
+                fontSize: 22,
                 fontWeight: FontWeight.w900,
                 color: Colors.white,
                 letterSpacing: 1.2,
@@ -191,8 +191,8 @@ class _LoginViewState extends ConsumerState<LoginView> with TickerProviderStateM
         ).createShader(bounds),
         child: AnimatedTextKit(
           animatedTexts: [
-            TypewriterAnimatedText(
-              '생각을 기록하고 관리하세요',
+            TyperAnimatedText(
+              '행동은 뇌가 한다',
               textStyle: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
@@ -211,12 +211,11 @@ class _LoginViewState extends ConsumerState<LoginView> with TickerProviderStateM
                   ),
                 ],
               ),
-              speed: const Duration(milliseconds: 80),
-              cursor: '_',
+              speed: const Duration(milliseconds: 120),
             ),
           ],
           totalRepeatCount: 1,
-          pause: const Duration(milliseconds: 100),
+          pause: const Duration(milliseconds: 50),
           displayFullTextOnTap: true,
           stopPauseOnTap: true,
           isRepeatingAnimation: false,

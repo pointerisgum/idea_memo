@@ -105,13 +105,7 @@ dev_dependencies:
   
   # 앱 아이콘 생성
   flutter_launcher_icons: ^0.13.1
-
-# 앱 아이콘 설정 (iOS & Android만)
-flutter_launcher_icons:
-  android: "launcher_icon"
-  ios: true
-  image_path: "assets/app_icon.png"
-  min_sdk_android: 21
+  flutter_native_splash: ^2.4.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -127,6 +121,26 @@ flutter_launcher_icons:
   # Freezed 코드 생성
   freezed: ^2.5.7
   json_serializable: ^6.8.0
+
+# 앱 아이콘 설정 (iOS & Android만)
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/app_icon.png"
+  min_sdk_android: 21
+
+# 네이티브 스플래시 화면 설정
+flutter_native_splash:
+  color: "#FF8A65"  # 오렌지 배경색 (이미지와 동일)
+  image: assets/splash.png
+  # fullscreen: true  # 전체 화면 모드 (상태바까지 숨김)
+  # android_gravity: fill  # Android에서 이미지가 화면을 꽉 채움
+  # ios_content_mode: scaleAspectFill  # iOS에서 이미지가 화면을 꽉 채움
+  android_12:
+    image: assets/splash.png
+    color: "#FF8A65"
+    # fullscreen: true
+  web: false  # 웹은 사용하지 않음
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
